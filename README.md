@@ -1,2 +1,2 @@
 # SatelliteModels
-SysMLvs models related to satellites
+SysMLv2 models related to satellites
