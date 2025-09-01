@@ -15,22 +15,34 @@ package CommunicationsSatelliteSystemDomain {
    
     part def SatelliteSystem {
         timeslice developmentStage;
-        then timeslice productionStage;
+        then timeslice productionStage{
+            ref part assemblyFixtures : ProductionDomain::AssemblyFixture[*];
+        }
         then timeslice transitionStage{
-            timeslice launchStage {
+            timeslice transportStage{
+                attribute shockLevel : Real;
+                attribute vibrationLevel : Real;
+                attribute accelerationConstraint : Real;
+                ref part roadTransport;
+                ref part airTransport;
+                ref part seaTransport;
+            }
+            then timeslice launchStage {
                 //attributes in the transition at the launch stage
                 attribute vibrationSpectrum;
                 attribute acousticLevel : Real;
                 attribute temperatureTransient;
                 attribute pressureProfile;
+                ref part launchVehicle : DeliveryDomain::LaunchVehicle;
             }
-            timeslice atmosphericEnvironmentStage{
+            then timeslice atmosphericEnvironmentStage{
                 //attributes in the transition at the atmosphere stage
                 attribute windSpeed : Real;
                 attribute windDirection : Real;
                 attribute precipitation : Real;
                 attribute lightningActivity : Real;
                 attribute atmosphericDensity : Real;
+                ref part launchVehicle : DeliveryDomain::LaunchVehicle;
             }
             then timeslice earlyOrbitEnvironmentStage{
                 //attributes in the transition at the early orbit stage
@@ -38,6 +50,7 @@ package CommunicationsSatelliteSystemDomain {
                 attribute thermalShock;
                 attribute solarExposure;
                 attribute micrometeoroidFlux;
+                ref part LaunchVehicle : DeliveryDomain::LaunchVehicle;
             }
             then timeslice spaceEnvironmentStage{
                 //attributes in the transition at the space stage
@@ -45,6 +58,7 @@ package CommunicationsSatelliteSystemDomain {
                 attribute earthAlbedo;
                 attribute magneticField;
                 attribute atmosphericDrag;
+                ref part LaunchVehicle : DeliveryDomain::LaunchVehicle;
             }
         }
         then timeslice operationalStage{
@@ -53,6 +67,10 @@ package CommunicationsSatelliteSystemDomain {
             attribute cyclicStresses[*];
             attribute cumulativeRadiationDose;
             attribute thermalFatigue;
+            attribute internalHeatSources[*];
+            attribute thermalCycling;
+            attribute spacecraftCharging;
+            attribute electrostaticDischarge;
             timeslice maintenanceSage[*]{
                 //attributes in the maintenance stage
                 attribute uvDegradation : Real;
@@ -74,7 +92,6 @@ package CommunicationsSatelliteSystemDomain {
             attribute radioactiveContamination;
         }
 
-
         part communicationPayload;
         part platformSubsystems;
         part structuralElements;
@@ -83,34 +100,6 @@ package CommunicationsSatelliteSystemDomain {
         attribute systemVolume : Real;
         attribute operatingTemperatureRange : Real[2];
         attribute radiationTolerance : Real;
-    }
-
-    // =====================================
-    // CROSS-DOMAIN PHYSICAL RELATIONSHIPS
-    // =====================================
-   
-    connection def PhysicalConnection {
-        end source : SystemEntity;
-        end target : SystemEntity;
-        attribute connectionType : PhysicalConnectionType;
-        attribute interfaceSpecification : String;
-    }
-   
-    enum def PhysicalConnectionType {
-        Mechanical;
-        Electrical;
-        Thermal;
-        Fluid;
-        Optical;
-        RF;
-        Data;
-    }
-   
-    connection def EnvironmentalExposure {
-        end system : SatelliteSystem;
-        end environment : EnvironmentalFactor;
-        attribute exposureDuration : Real;
-        attribute effectMagnitude : Real;
     }
    
     // =====================================
@@ -375,32 +364,34 @@ package CommunicationsSatelliteSystemDomain {
        
         part def SpaceEnvironment :> Domain {
             ref part SatelliteSystem;
-            part solarRadiation : SolarRadiation;
-            part cosmicRadiation : CosmicRadiation;
-            part earthRadiation;
+            part sun : Sun;
             part micrometeoroidDebris;
-            part plasmEnvironment;
             part magnetosphericEnvironment;
             part communicationPartners : CommunicationPartners[*];
            
             attribute vacuumLevel : Real;
             attribute temperatureCycling;
+            attribute galacticCosmicRays;
+            attribute trappedRadiation;
+            attribute totalIonizingDose : Real;
+            attribute singleEventUpset;
+            //Radiofrequency attributes
+            attribute interferenceSource[*];
+            attribute atmosphericNoise;
+            attribute ionosphericEffects;
+            attribute rainAttenuation;     
+            attribute spectrumOccupancy;
+            attribute regulatoryConstraints[*];
         }
        
-        part def SolarRadiation :> EnergySource {
+        item def Sun :> EnergySource {
             attribute solarConstant : Real; // W/m²
             attribute solarCycleVariation : Real;
             attribute eclipseGeometry;
             attribute solarFlareActivity;
-            attribute uvDegradationRate : Real;
-        }
-       
-        part def CosmicRadiation :> EnvironmentalFactor {
-            attribute galacticCosmicRays;
             attribute solarEnergeticParticles;
-            attribute trappedRadiation;
-            attribute totalIonizingDose : Real;
-            attribute singleEventUpset;
+            attribute solarRadiationPressure;
+            attribute solarHeating;
         }
        
         part def CommunicationPartners :> SystemEntity {
@@ -420,37 +411,15 @@ package CommunicationsSatelliteSystemDomain {
             attribute geographicLocation;
         }
        
-        part def RadioFrequencyEnvironment :> EnvironmentalFactor {
-            attribute interferenceSource[*];
-            attribute atmosphericNoise;
-            attribute ionosphericEffects;
-            attribute rainAttenuation;
-           
-            attribute spectrumOccupancy;
-            attribute regulatoryConstraints[*];
-        }
-       
-        part def OrbitalEnvironment :> EnvironmentalFactor {
-            part gravitationalField;
-            part atmosphericDrag;
-            part solarRadiationPressure;
-            part thirdBodyPerturbations[*];
-            part stationKeepingRequirements;
-        }
-       
-        part def ThermalEnvironment :> EnvironmentalFactor {
-            part solarHeating;
-            part earthInfraredRadiation;
-            part earthAlbedoReflection;
-            part internalHeatSources[*];
-            part thermalCycling;
-        }
-       
-        part def ElectricalEnvironment :> EnvironmentalFactor {
-            part spacecraftCharging;
-            part electrostaticDischarge;
-            part plasmaDensity;
-            part magneticFieldVariation;
+        part def earth {
+            attribute gravitationalField;
+            attribute atmosphericDrag;
+            attribute thirdBodyPerturbations[*];
+            attribute stationKeepingRequirements;
+            attribute earthInfraredRadiation;
+            attribute thermalCycling;
+            attribute earthAlbedoReflection;
+            attribute magneticFieldVariation;
         }
        
         part def NavigationReferences :> SystemEntity {
