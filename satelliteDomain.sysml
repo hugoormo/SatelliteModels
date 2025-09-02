@@ -1,5 +1,6 @@
 package CommunicationsSatelliteSystemDomain {
 
+    package LifeCycle {
     private import ScalarValues::*;
    
     // =====================================
@@ -14,11 +15,11 @@ package CommunicationsSatelliteSystemDomain {
    
      occurrence def SatelliteMission {
         //timeslices represent a portion of the instances of the containing occurrence definition
-        timeslice MissionDevelopmentStage {
+        timeslice missionDevelopmentStage {
             attribute contaminationLevel : Real;
             attribute ambientConditions;
 
-            ref part satelliteDevelopmentStage :> satelliteSystem.SatelliteDevelopmentStage;
+            ref part satelliteDevelopmentStage :> satelliteSystem.satelliteDevelopmentStage;
             part :>> DevelopmentDomain::vibrationTable;
             part :>> DevelopmentDomain::thermalVacuum;
             part :>> DevelopmentDomain::anechoicChamber;
@@ -27,12 +28,12 @@ package CommunicationsSatelliteSystemDomain {
             connect satelliteDevelopmentStage to thermalVacuum;
             connect satelliteDevelopmentStage to anechoicChamber;
         }
-        then timeslice MissionProductionStage{
+        then timeslice missionProductionStage{
             attribute particleContamination : Real;
             attribute molecularContamination : Real;
             attribute electrostaticCharge : Real;
 
-            ref part satelliteProductionStage :> satelliteSystem.SatelliteProductionStage;
+            ref part satelliteProductionStage :> satelliteSystem.satelliteProductionStage;
             part :>> ProductionDomain::assemblyFixtures [*];
             part :>> ProductionDomain::cleanroomZones[*];
             part :>> ProductionDomain::temperatureControlledAreas[*];
@@ -41,57 +42,56 @@ package CommunicationsSatelliteSystemDomain {
             connect [*] satelliteProductionStage to [1]assemblyFixtures;
             connect satelliteProductionStage to electrostaticProtectionZones;
         }
-        then timeslice MissionTransportStage {
-            attribute shockLevel : Real;
-            attribute vibrationLevel : Real;
-            attribute accelerationConstraint : Real;
-            
-            ref part satelliteTransportStage :> satelliteSystem.SatelliteTransportStage;
-            part :>> DeliveryDomain::roadTransport;
-            part :>> DeliveryDomain::airTransport;
-            part :>> DeliveryDomain::seaTransport;
+        then timeslice missionTransitionStage {
+            timeslice missionTransportStage {
+                attribute shockLevel : Real;
+                attribute vibrationLevel : Real;
+                attribute accelerationConstraint : Real;
+                
+                ref part satelliteTransportStage :> satelliteSystem.satelliteTransitionStage.satelliteTransportStage;
+                part :>> DeliveryDomain::roadTransport;
+                part :>> DeliveryDomain::airTransport;
+                part :>> DeliveryDomain::seaTransport;
 
-            connect satelliteTransportStage to roadTransport;
-            connect satelliteTransportStage to airTransport;
-            connect satelliteTransportStage to seaTransport;
+                connect satelliteTransportStage to roadTransport;
+                connect satelliteTransportStage to airTransport;
+                connect satelliteTransportStage to seaTransport;
+            }
+            then timeslice missionLaunchStage {
+                ref part satelliteLaunchStage :> satelliteSystem.satelliteTransitionStage.satelliteLaunchStage;
+                ref part launchVehicle :> DeliveryDomain::launchVehicle;
+                part :>> DeliveryDomain::processingFacility;
+                part :>> DeliveryDomain::electricalGroundSupport;
+                part :>> DeliveryDomain::communicationLinks[*];
+
+                connect satelliteLaunchStage to launchVehicle;
+                connect [*]satelliteLaunchStage to communicationLinks;
+                connect satelliteLaunchStage to electricalGroundSupport;
+            }
+            then timeslice missionAtmosphericEnvironmentStage {
+                //attributes in the transition at the atmosphere stage
+                attribute windSpeed : Real;
+                attribute windDirection : Real;
+                attribute precipitation : Real;
+                attribute lightningActivity : Real;
+                attribute atmosphericDensity : Real;
+
+                ref part satelliteAtmosphericEnvironmentStage :> satelliteSystem.satelliteTransitionStage.satelliteAtmosphericEnvironmentStage;
+                ref part launchVehicle :> DeliveryDomain::launchVehicle;
+
+                connect satelliteAtmosphericEnvironmentStage to launchVehicle;
+            }
+            then timeslice missionEarlyOrbitEnvironmentStage {
+                ref part satelliteEarlyOrbitEnvironmentStage :> satelliteSystem.satelliteTransitionStage.satelliteEarlyOrbitEnvironmentStage;
+                ref part launchVehicle :> DeliveryDomain::launchVehicle;
+
+                connect satelliteEarlyOrbitEnvironmentStage to launchVehicle; 
+            }
+            then timeslice missionSpaceEnvironmentStage{
+                ref part satelliteSpaceEnvironmentStage :> satelliteSystem.satelliteTransitionStage.satelliteSpaceEnvironmentStage;
+            }
         }
-        then timeslice MissionLaunchStage {
-            ref part satelliteLaunchStage :> satelliteSystem.SatelliteLaunchStage;
-            ref part launchVehicle :> DeliveryDomain::launchVehicle;
-            part :>> DeliveryDomain::processingFacility;
-            part :>> DeliveryDomain::electricalGroundSupport;
-            part :>> DeliveryDomain::communicationLinks[*];
-
-            connect satelliteLaunchStage to launchVehicle;
-            connect [*]satelliteLaunchStage to communicationLinks;
-            connect satelliteLaunchStage to electricalGroundSupport;
-        }
-        then timeslice MissionAtmosphericEnvironmentStage {
-            //attributes in the transition at the atmosphere stage
-            attribute windSpeed : Real;
-            attribute windDirection : Real;
-            attribute precipitation : Real;
-            attribute lightningActivity : Real;
-            attribute atmosphericDensity : Real;
-
-            ref part satelliteAtmosphericEnvironmentStage :> satelliteSystem.SatelliteAtmosphericEnvironmentStage;
-            ref part launchVehicle :> DeliveryDomain::launchVehicle;
-
-            connect satelliteAtmosphericEnvironmentStage to launchVehicle;
-        }
-        then timeslice MissionEarlyOrbitEnvironmentStage {
-            ref part satelliteEarlyOrbitEnvironmentStage :> satelliteSystem.SatelliteEarlyOrbitEnvironmentStage;
-            ref part launchVehicle :> DeliveryDomain::launchVehicle;
-
-            connect satelliteEarlyOrbitEnvironmentStage to launchVehicle; 
-        }
-        then timeslice MissionSpaceEnvironmentStage{
-            ref part satelliteSpaceEnvironmentStage :> satelliteSystem.SatelliteSpaceEnvironmentStage;
-            ref part launchVehicle :> DeliveryDomain::launchVehicle;
-
-            connect satelliteSpaceEnvironmentStage to launchVehicle;
-        }
-        then timeslice MissionOperationalStage {
+        then timeslice missionOperationalStage {
             attribute vacuumLevel : Real;
             attribute temperatureCycling;
             attribute galacticCosmicRays;
@@ -106,7 +106,7 @@ package CommunicationsSatelliteSystemDomain {
             attribute spectrumOccupancy;
             attribute regulatoryConstraints[*];
             
-            ref part satelliteOperationalStage :> satelliteSystem.SatelliteOperationalStage;
+            ref part satelliteOperationalStage :> satelliteSystem.satelliteOperationalStage;
             part :>> OperationsDomain::sun;
             part :>> OperationsDomain::earth;
             part :>> OperationsDomain::micrometeoroidDebris[*];
@@ -119,29 +119,19 @@ package CommunicationsSatelliteSystemDomain {
             connect satelliteOperationalStage to magnetosphericEnvironment;
             connect [*] satelliteOperationalStage to communicationPartners;
 
-            //declared in the body of another occurrence usage, then it represents a portion of the instances 
-            //of the definition(s) of that containing usage
-            timeslice MissionMaintenanceStage {
-                ref part satelliteMaintenenaceStage :> satelliteSystem.SatelliteOperationalStage.maintenanceStage;
+            //Represents a portion of the instances of the definition(s) of that containing usage
+            timeslice missionMaintenanceStage {
+                ref part satelliteMaintenenaceStage :> satelliteSystem.satelliteOperationalStage.maintenanceStage;
             }
         }
 
-        then timeslice MissionDecommissionStage {
-            attribute naturalPerturbations[*];
-            attribute artificialPerturbations[*];
-            //decommission in orbit
-            attribute orbitAltitude : Real;
-            attribute orbitStability : Real;
-            attribute collisionProbability : Real;
-            attribute perturbationForces[*];
-            //decommission by reentry
-            attribute atmosphericDensityProfile;
-            attribute heatingProfile;
-            attribute aerodynamicForces;
-            attribute breakupAltitude : Real;
-            attribute impactFootprint;
+        then timeslice missionDecommissionStage {
+            attribute spaceDebrisGeneration;
+            attribute atmosphericContamination;
+            attribute groundImpactRisk;
+            attribute radioactiveContamination;
 
-            ref part satelliteDecommissionStage :> satelliteSystem.SatelliteDecommissionStage;
+            ref part satelliteDecommissionStage :> satelliteSystem.satelliteDecommissionStage;
             item :>> DecommissionDomain::debrisField;
 
             connect satelliteDecommissionStage to debrisField;
@@ -149,56 +139,59 @@ package CommunicationsSatelliteSystemDomain {
     }
     
     part def SatelliteSystem {
-        timeslice SatelliteDevelopmentStage {
+        timeslice satelliteDevelopmentStage {
             part testInterface : DevelopmentDomain::TestInterface;
             part meaurementReferencePoint : DevelopmentDomain::MeasurementReferencePoint [1..*];
             part diagnosticInterface : DevelopmentDomain::DiagnosticInterface;
-            part prototypeCommunicationPayload : DevelopmentDomain::PrototypeComponent;
-            part prototypePlatformSubsystems : DevelopmentDomain::PrototypeComponent;
-            part prototypeStructuralElements : DevelopmentDomain::PrototypeComponent;
+            part prototypeCommunicationPayload : DevelopmentDomain::PrototypeComponent :>> communicationPayload;
+            part prototypePlatformSubsystems : DevelopmentDomain::PrototypeComponent :>> platformSubsystems;
+            part prototypeStructuralElements : DevelopmentDomain::PrototypeComponent :>> structuralElements;
         }
-        then timeslice SatelliteProductionStage {
-            part components : ProductionDomain::ComponentSupplyChain [*];
+        then timeslice satelliteProductionStage {
+            part componentCommunicationPayload : ProductionDomain::ComponentSupplyChain :>> communicationPayload;
+            part componentPlatformSubsystems : ProductionDomain::ComponentSupplyChain :>> platformSubsystems;
+            part componentStructuralElements : ProductionDomain::ComponentSupplyChain :>> structuralElements;
         }
-        timeslice SatelliteTransportStage {
-            part transportLatchingMEchanism : DeliveryDomain::TransportLatchingMechanism;
-        }
-        then timeslice SatelliteLaunchStage {
-            //attributes in the transition at the launch stage
-            attribute vibrationSpectrum;
-            attribute acousticLevel : Real;
-            attribute temperatureTransient;
-            attribute pressureProfile;
+        
+        then timeslice satelliteTransitionStage {
+            timeslice satelliteTransportStage {
+                part transportLatchingMechanism : DeliveryDomain::TransportLatchingMechanism;
+            }
+            then timeslice satelliteLaunchStage {
+                //attributes in the transition at the launch stage
+                attribute vibrationSpectrum;
+                attribute acousticLevel : Real;
+                attribute temperatureTransient;
+                attribute pressureProfile;
 
-            part launcherLatchitngMechanism : DeliveryDomain::LauncherLatchitngMechanism;
-        }
-        then timeslice SatelliteAtmosphericEnvironmentStage{
-            attribute vibrationSpectrum;
-            attribute acousticLevel : Real;
-            attribute temperatureTransient;
-            attribute pressureProfile;    
+                part launcherLatchingMechanism : DeliveryDomain::LauncherLatchingMechanism;
+            }
+            then timeslice satelliteAtmosphericEnvironmentStage{
+                attribute vibrationSpectrum;
+                attribute acousticLevel : Real;
+                attribute temperatureTransient;
+                attribute pressureProfile;    
 
-            part launcherLatchitngMechanism : DeliveryDomain::LauncherLatchitngMechanism;
-        }
-        then timeslice SatelliteEarlyOrbitEnvironmentStage{
-            //attributes in the transition at the early orbit stage
-            attribute vacuumExposure;
-            attribute thermalShock;
-            attribute solarExposure;
-            attribute micrometeoroidFlux;
+                part launcherLatchingMechanism : DeliveryDomain::LauncherLatchingMechanism;
+            }
+            then timeslice satelliteEarlyOrbitEnvironmentStage{
+                //attributes in the transition at the early orbit stage
+                attribute vacuumExposure;
+                attribute thermalShock;
+                attribute solarExposure;
+                attribute micrometeoroidFlux;
 
-            part launcherLatchitngMechanism : DeliveryDomain::LauncherLatchitngMechanism;
+                part launcherLatchingMechanism : DeliveryDomain::LauncherLatchingMechanism;
+            }
+            then timeslice satelliteSpaceEnvironmentStage{
+                //attributes in the transition at the space stage
+                attribute orbitGeometry;
+                attribute earthAlbedo;
+                attribute magneticField;
+                attribute atmosphericDrag;
+            }
         }
-        then timeslice SatelliteSpaceEnvironmentStage{
-            //attributes in the transition at the space stage
-            attribute orbitGeometry;
-            attribute earthAlbedo;
-            attribute magneticField;
-            attribute atmosphericDrag;
-
-            part launcherLatchitngMechanism : DeliveryDomain::LauncherLatchitngMechanism;
-        }
-        then timeslice SatelliteOperationalStage{
+        then timeslice satelliteOperationalStage{
             //attributes in the operational stage
             attribute continuousSpaceExposure;
             attribute cyclicStresses[*];
@@ -235,12 +228,21 @@ package CommunicationsSatelliteSystemDomain {
 
             }
         }
-        then timeslice SatelliteDecommissionStage{
+        then timeslice satelliteDecommissionStage{
             //attributes in the decommissioning stage
-            attribute spaceDebrisGeneration;
-            attribute atmosphericContamination;
-            attribute groundImpactRisk;
-            attribute radioactiveContamination;
+            attribute naturalPerturbations[*];
+            attribute artificialPerturbations[*];
+            //decommission in orbit
+            attribute orbitAltitude : Real;
+            attribute orbitStability : Real;
+            attribute collisionProbability : Real;
+            attribute perturbationForces[*];
+            //decommission by reentry
+            attribute atmosphericDensityProfile;
+            attribute heatingProfile;
+            attribute aerodynamicForces;
+            attribute breakupAltitude : Real;
+            attribute impactFootprint;
 
             part passivationSystem : DecommissionDomain::PassivationSystem;
             part shutDownSystem : DecommissionDomain::ShutDownSystem;
@@ -463,7 +465,7 @@ package CommunicationsSatelliteSystemDomain {
         part seaTransport;
         
         part def TransportLatchingMechanism;
-        part def LauncherLatchitngMechanism;
+        part def LauncherLatchingMechanism;
 
         part def LaunchVehicle :> SystemEntity {
             part payloadFairing;
@@ -657,6 +659,40 @@ package CommunicationsSatelliteSystemDomain {
             part positionReportingSystem;
             part statusTelemetrySystem;
             part emergencyBeacons[*];
+        }
+    }
+    }
+    package viewpointsAndViews {
+        
+        concern MissionLifeCycleOverview {
+            doc /*
+            * To ensure that the whole mission life cycle is up to date
+            * and available to all stakeholders for reference and review
+            */
+            subject SatelliteMission;
+        }
+        
+        viewpoint missionLifeCyclePerspective {
+            frame MissionLifeCycleOverview;
+            require constraint {
+                doc /*
+                * A mission life cycle view shall show the whole Mission Life Cycle 
+                * including the system-of-interest as a part of the domain in each life cycle stage.
+                */
+            }
+        }
+        view def MissionLifeCycleView {
+            satisfy missionLifeCyclePerspective;
+            filter @SysML::PartUsage;
+        }
+        view missionLifeCycleView : MissionLifeCycleView {
+            expose LifeCycle::SatelliteMission::*;
+        }
+        view systemLifeCycleView : MissionLifeCycleView {
+            expose LifeCycle::SatelliteSystem::*;
+        }
+        view systemView : MissionLifeCycleView {
+            expose LifeCycle::SatelliteMission::missionOperationalStage::*;
         }
     }
    
