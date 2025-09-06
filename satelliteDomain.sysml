@@ -671,27 +671,36 @@ package CommunicationsSatelliteSystemDomain {
             */
             subject SatelliteMission;
         }
+
+        concern SystemLifeCycleOverview {
+            doc /*
+            * To ensure that the whole life cycle of a paticular system is up to date
+            * and available to all stakeholders for reference and review
+            */
+            subject SatelliteMission;
+        }
         
-        viewpoint missionLifeCyclePerspective {
+        viewpoint LifeCyclePerspective {
             frame MissionLifeCycleOverview;
+            frame SystemLifeCycleOverview;
             require constraint {
                 doc /*
-                * A mission life cycle view shall show the whole Mission Life Cycle 
+                * A life cycle view shall show the whole Life Cycle of a particular subject
                 * including the system-of-interest as a part of the domain in each life cycle stage.
                 */
             }
         }
-        view def MissionLifeCycleView {
-            satisfy missionLifeCyclePerspective;
+        view def LifeCycleView {
+            satisfy LifeCyclePerspective;
             filter @SysML::PartUsage;
         }
-        view missionLifeCycleView : MissionLifeCycleView {
+        view missionLifeCycleView : LifeCycleView {
             expose LifeCycle::SatelliteMission::*;
         }
-        view systemLifeCycleView : MissionLifeCycleView {
+        view systemLifeCycleView : LifeCycleView {
             expose LifeCycle::SatelliteSystem::*;
         }
-        view systemView : MissionLifeCycleView {
+        view systemView : LifeCycleView {
             expose LifeCycle::SatelliteMission::missionOperationalStage::*;
         }
     }
